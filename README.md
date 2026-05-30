@@ -16,7 +16,8 @@ React + Tailwind CSS SPA for the TaskBoard design-patterns project. Connects to 
 ## Setup
 
 ```bash
-pnpm install   # or npm install
+pnpm install
+# Edit the api URL in .env
 cp .env.example .env
 pnpm dev
 ```
