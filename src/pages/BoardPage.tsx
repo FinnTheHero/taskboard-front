@@ -10,7 +10,7 @@ export function BoardPage() {
   const location = useLocation();
   const stateBoard = (location.state as { board?: Board } | null)?.board;
   const [board, setBoard] = useState<Board | null>(
-    stateBoard?.id === boardId ? stateBoard : null,
+    stateBoard?.id === boardId ? (stateBoard ?? null) : null,
   );
   const [loading, setLoading] = useState(!board);
 
