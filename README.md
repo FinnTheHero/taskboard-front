@@ -2,12 +2,15 @@
 
 React + Tailwind CSS SPA for the TaskBoard design-patterns project. Connects to the Express API at `http://localhost:4000/api`.
 
-## Core features (Sprint 2 scope)
+## Core features
 
 - **Auth** — register, login, JWT session
 - **Boards** — list and create (auto To Do / In Progress / Done columns)
-- **Kanban** — drag & drop tasks between columns
+- **Kanban** — drag & drop with position-aware moves (within and across columns)
 - **Tasks** — create with title, description, deadline, priority (Low → Critical)
+- **Sort** — per-column strategy sort (`priority`, `deadline`, `created`, `assignee`) via `?sort=`
+- **Comments** — view and post comments on a task (triggers backend `task.commented`)
+- **Archive** — bulk-archive all tasks in the Done column
 - **Progress** — completion bar from Done column vs total tasks
 
 ## Setup
@@ -40,8 +43,12 @@ src/
   types/        # Shared TypeScript models
 ```
 
-## Later sprints (not in this UI yet)
+## Backend pattern integration
 
-- In-app / email reminders (Observer + Factory on backend)
-- Team collaboration & comments
-- Full statistics dashboard
+| Pattern | Frontend usage |
+|---------|----------------|
+| **Strategy** | Column sort dropdown → `GET /tasks/by-column/:id?sort=` |
+| **Transactions** | Move with `position`, archive completed |
+| **Observer** | Comments and moves trigger server-side notifications |
+
+In-app / email notifications are handled on the API (no UI required). Transfer ownership is exposed in `boards.ts` for future team UI.
