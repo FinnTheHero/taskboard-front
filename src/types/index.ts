@@ -101,8 +101,64 @@ export interface CreateTaskInput {
   description?: string;
   deadline?: string;
   priority?: Priority;
+  assigneeId?: string;
 }
 
 export interface ArchiveCompletedResult {
   archivedCount: number;
+}
+
+export interface AssigneeWorkloadEntry {
+  userId: string;
+  name: string;
+  taskCount: number;
+  overdueCount: number;
+}
+
+export interface ColumnCountEntry {
+  column: string;
+  count: number;
+}
+
+export interface AvgTimeEntry {
+  column: string;
+  avgHours: number;
+}
+
+export interface BoardStats {
+  boardId: string;
+  totalTasks: number;
+  doneCount: number;
+  completionRate: number;
+  overdueCount: number;
+  unassignedCount: number;
+  tasksByPriority: Record<string, number>;
+  tasksByColumn: ColumnCountEntry[];
+  byAssignee: AssigneeWorkloadEntry[];
+  avgTimeInColumn: AvgTimeEntry[];
+}
+
+export interface GroupBoardStatsEntry {
+  boardId: string;
+  title: string;
+  totalTasks: number;
+  completionRate: number;
+  overdueCount: number;
+}
+
+export interface GroupStats {
+  groupId: string;
+  groupName: string;
+  boardCount: number;
+  accessibleBoardCount: number;
+  totalTasks: number;
+  doneCount: number;
+  completionRate: number;
+  overdueCount: number;
+  unassignedCount: number;
+  tasksByPriority: Record<string, number>;
+  tasksByColumn: ColumnCountEntry[];
+  byAssignee: AssigneeWorkloadEntry[];
+  avgTimeInColumn: AvgTimeEntry[];
+  byBoard: GroupBoardStatsEntry[];
 }

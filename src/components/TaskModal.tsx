@@ -1,11 +1,13 @@
 import { useState, type FormEvent } from "react";
 import { X } from "lucide-react";
 import { PRIORITY_OPTIONS } from "../lib/priority";
-import type { CreateTaskInput, Priority } from "../types";
+import type { BoardMemberEntry, CreateTaskInput, Priority } from "../types";
 
 interface TaskModalProps {
   columnId: string;
   columnTitle: string;
+  assignableMembers: BoardMemberEntry[];
+  currentUserId: string;
   onClose: () => void;
   onSubmit: (input: CreateTaskInput) => Promise<void>;
 }
@@ -13,6 +15,8 @@ interface TaskModalProps {
 export function TaskModal({
   columnId,
   columnTitle,
+  assignableMembers,
+  currentUserId,
   onClose,
   onSubmit,
 }: TaskModalProps) {
@@ -20,6 +24,7 @@ export function TaskModal({
   const [description, setDescription] = useState("");
   const [deadline, setDeadline] = useState("");
   const [priority, setPriority] = useState<Priority>("MEDIUM");
+  const [assigneeId, setAssigneeId] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -38,6 +43,7 @@ export function TaskModal({
         description: description.trim() || undefined,
         deadline: deadline || undefined,
         priority,
+        ...(assigneeId ? { assigneeId } : {}),
       });
       onClose();
     } catch (err) {
@@ -125,6 +131,31 @@ export function TaskModal({
               </select>
             </label>
           </div>
+
+          <label className="block">
+            <span className="mb-1 block text-sm font-medium">Assignee</span>
+            <div className="flex gap-2">
+              <select
+                value={assigneeId}
+                onChange={(e) => setAssigneeId(e.target.value)}
+                className="min-w-0 flex-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm outline-none focus:border-brand-500"
+              >
+                <option value="">Unassigned</option>
+                {assignableMembers.map((m) => (
+                  <option key={m.userId} value={m.userId}>
+                    {m.user.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => setAssigneeId(currentUserId)}
+                className="shrink-0 rounded-lg border border-[var(--color-border)] px-3 py-2 text-xs text-muted transition hover:border-brand-500/40 hover:text-text"
+              >
+                Assign to me
+              </button>
+            </div>
+          </label>
 
           {error && (
             <p className="text-sm text-rose-400" role="alert">

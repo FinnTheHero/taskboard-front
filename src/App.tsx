@@ -5,6 +5,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { GroupProvider } from "./context/GroupContext";
 import { BoardPage } from "./pages/BoardPage";
 import { BoardsPage } from "./pages/BoardsPage";
+import { GroupAnalyticsPage } from "./pages/GroupAnalyticsPage";
 import { GroupManagePage } from "./pages/GroupManagePage";
 import { JoinGroupPage } from "./pages/JoinGroupPage";
 import { LoginPage } from "./pages/LoginPage";
@@ -23,6 +24,7 @@ export default function App() {
               <Route element={<Layout />}>
                 <Route path="/boards" element={<BoardsPage />} />
                 <Route path="/boards/:boardId" element={<BoardPage />} />
+                <Route path="/group/analytics" element={<GroupAnalyticsPage />} />
                 <Route path="/group/manage" element={<GroupManagePage />} />
               </Route>
             </Route>

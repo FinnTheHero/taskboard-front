@@ -13,18 +13,22 @@ import { Archive } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import * as boardsApi from "../api/boards";
 import * as tasksApi from "../api/tasks";
+import { useAuth } from "../context/AuthContext";
+import { BoardFocusPanel } from "./BoardFocusPanel";
+import type { FocusTask } from "./FocusTaskRow";
 import { KanbanColumn } from "./KanbanColumn";
 import { TaskCard } from "./TaskCard";
 import { TaskDetailModal } from "./TaskDetailModal";
 import { TaskModal } from "./TaskModal";
 import { useGroup } from "../context/GroupContext";
-import type { Board, Column, SortKey, Task } from "../types";
+import type { Board, BoardMemberEntry, Column, SortKey, Task } from "../types";
 
 interface KanbanBoardProps {
   board: Board;
 }
 
 export function KanbanBoard({ board }: KanbanBoardProps) {
+  const { user } = useAuth();
   const { isManager } = useGroup();
   const columns = useMemo(
     () => [...(board.columns ?? [])].sort((a, b) => a.position - b.position),
@@ -44,6 +48,9 @@ export function KanbanBoard({ board }: KanbanBoardProps) {
   const [modalColumn, setModalColumn] = useState<Column | null>(null);
   const [error, setError] = useState("");
   const [archiveMessage, setArchiveMessage] = useState("");
+  const [assignableMembers, setAssignableMembers] = useState<BoardMemberEntry[]>(
+    [],
+  );
 
   const sortKey = Object.values(sortByColumn).join(",");
 
@@ -71,6 +78,43 @@ export function KanbanBoard({ board }: KanbanBoardProps) {
   useEffect(() => {
     if (columns.length) loadTasks();
   }, [loadTasks, columns.length]);
+
+  useEffect(() => {
+    boardsApi
+      .listAssignableMembers(board.id)
+      .then(setAssignableMembers)
+      .catch(() => setAssignableMembers([]));
+  }, [board.id]);
+
+  const columnTitleById = useMemo(() => {
+    return Object.fromEntries(columns.map((c) => [c.id, c.title]));
+  }, [columns]);
+
+  const allTasks = useMemo((): FocusTask[] => {
+    const result: FocusTask[] = [];
+    for (const [columnId, tasks] of Object.entries(tasksByColumn)) {
+      const columnTitle = columnTitleById[columnId] ?? "Unknown";
+      for (const task of tasks) {
+        result.push({ ...task, columnTitle });
+      }
+    }
+    return result;
+  }, [tasksByColumn, columnTitleById]);
+
+  function updateTaskInState(updated: Task) {
+    setTasksByColumn((current) => {
+      const next: Record<string, Task[]> = {};
+      for (const [columnId, tasks] of Object.entries(current)) {
+        next[columnId] = tasks.map((t) =>
+          t.id === updated.id ? { ...t, ...updated } : t,
+        );
+      }
+      return next;
+    });
+    setSelectedTask((current) =>
+      current?.id === updated.id ? { ...current, ...updated } : current,
+    );
+  }
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -220,6 +264,7 @@ export function KanbanBoard({ board }: KanbanBoardProps) {
   const doneCount = doneColumn
     ? (tasksByColumn[doneColumn.id]?.length ?? 0)
     : 0;
+  // Client-side bar for instant feedback; authoritative metrics live on GET /boards/:id/stats and /group/analytics.
   const progress =
     totalTasks > 0 ? Math.round((doneCount / totalTasks) * 100) : 0;
 
@@ -271,52 +316,67 @@ export function KanbanBoard({ board }: KanbanBoardProps) {
       {loading ? (
         <p className="text-muted">Loading board…</p>
       ) : (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCorners}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-        >
-          <div className="flex flex-1 gap-4 overflow-x-auto pb-4">
-            {columns.map((column) => (
-              <KanbanColumn
-                key={column.id}
-                column={column}
-                tasks={tasksByColumn[column.id] ?? []}
-                sort={sortByColumn[column.id]}
-                dragDisabled={Boolean(sortByColumn[column.id])}
-                onAddTask={(columnId) => {
-                  const col = columns.find((c) => c.id === columnId);
-                  if (col) setModalColumn(col);
-                }}
-                onSortChange={handleSortChange}
-                onTaskClick={setSelectedTask}
-              />
-            ))}
-          </div>
-          <DragOverlay>
-            {activeTask ? (
-              <div className="w-72 rotate-2 opacity-90">
-                <TaskCard task={activeTask} />
-              </div>
-            ) : null}
-          </DragOverlay>
-        </DndContext>
+        <div className="flex min-h-0 flex-1 gap-4">
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCorners}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          >
+            <div className="flex min-w-0 flex-1 gap-4 overflow-x-auto pb-4">
+              {columns.map((column) => (
+                <KanbanColumn
+                  key={column.id}
+                  column={column}
+                  tasks={tasksByColumn[column.id] ?? []}
+                  sort={sortByColumn[column.id]}
+                  dragDisabled={Boolean(sortByColumn[column.id])}
+                  onAddTask={(columnId) => {
+                    const col = columns.find((c) => c.id === columnId);
+                    if (col) setModalColumn(col);
+                  }}
+                  onSortChange={handleSortChange}
+                  onTaskClick={setSelectedTask}
+                />
+              ))}
+            </div>
+            <DragOverlay>
+              {activeTask ? (
+                <div className="w-72 rotate-2 opacity-90">
+                  <TaskCard task={activeTask} />
+                </div>
+              ) : null}
+            </DragOverlay>
+          </DndContext>
+          {user && (
+            <BoardFocusPanel
+              tasks={allTasks}
+              assignableMembers={assignableMembers}
+              currentUserId={user.id}
+              onTaskClick={setSelectedTask}
+            />
+          )}
+        </div>
       )}
 
-      {modalColumn && (
+      {modalColumn && user && (
         <TaskModal
           columnId={modalColumn.id}
           columnTitle={modalColumn.title}
+          assignableMembers={assignableMembers}
+          currentUserId={user.id}
           onClose={() => setModalColumn(null)}
           onSubmit={handleCreateTask}
         />
       )}
 
-      {selectedTask && (
+      {selectedTask && user && (
         <TaskDetailModal
           task={selectedTask}
+          assignableMembers={assignableMembers}
+          currentUserId={user.id}
           onClose={() => setSelectedTask(null)}
+          onUpdated={updateTaskInState}
         />
       )}
     </div>

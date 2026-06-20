@@ -3,6 +3,7 @@ import type {
   ArchiveCompletedResult,
   Board,
   BoardMemberEntry,
+  BoardStats,
   BoardSummary,
 } from "../types";
 
@@ -31,6 +32,10 @@ export function listBoardMembers(boardId: string) {
   return api<BoardMemberEntry[]>(`/boards/${boardId}/members`);
 }
 
+export function listAssignableMembers(boardId: string) {
+  return api<BoardMemberEntry[]>(`/boards/${boardId}/assignable-members`);
+}
+
 export function grantBoardAccess(boardId: string, userId: string) {
   return api<BoardMemberEntry>(`/boards/${boardId}/members`, {
     method: "POST",
@@ -42,4 +47,8 @@ export function revokeBoardAccess(boardId: string, userId: string) {
   return api<void>(`/boards/${boardId}/members/${userId}`, {
     method: "DELETE",
   });
+}
+
+export function getBoardStats(boardId: string) {
+  return api<BoardStats>(`/boards/${boardId}/stats`);
 }

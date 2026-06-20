@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { LayoutGrid, Lock, Plus, Settings } from "lucide-react";
+import { LayoutGrid, Lock, Plus, Settings, BarChart3 } from "lucide-react";
 import * as boardsApi from "../api/boards";
 import { useGroup } from "../context/GroupContext";
 import type { BoardSummary } from "../types";
@@ -59,15 +59,24 @@ export function BoardsPage() {
             All boards in your group · open only those you have access to
           </p>
         </div>
-        {isManager && (
+        <div className="flex flex-wrap gap-2">
           <Link
-            to="/group/manage"
-            className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm text-muted transition hover:border-brand-500/40 hover:text-text"
+            to="/group/analytics"
+            className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm text-muted transition hover:border-violet-500/40 hover:text-text"
           >
-            <Settings className="h-4 w-4" />
-            Manage group
+            <BarChart3 className="h-4 w-4" />
+            Analytics
           </Link>
-        )}
+          {isManager && (
+            <Link
+              to="/group/manage"
+              className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm text-muted transition hover:border-brand-500/40 hover:text-text"
+            >
+              <Settings className="h-4 w-4" />
+              Manage group
+            </Link>
+          )}
+        </div>
       </header>
 
       {isManager && (

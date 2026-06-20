@@ -3,18 +3,47 @@ import { useState, type FormEvent } from "react";
 import { MessageSquare, X } from "lucide-react";
 import * as tasksApi from "../api/tasks";
 import { PriorityBadge } from "./PriorityBadge";
-import type { Comment, Task } from "../types";
+import type { BoardMemberEntry, Comment, Task } from "../types";
 
 interface TaskDetailModalProps {
   task: Task;
+  assignableMembers: BoardMemberEntry[];
+  currentUserId: string;
   onClose: () => void;
+  onUpdated: (task: Task) => void;
 }
 
-export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
+export function TaskDetailModal({
+  task,
+  assignableMembers,
+  currentUserId,
+  onClose,
+  onUpdated,
+}: TaskDetailModalProps) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [body, setBody] = useState("");
+  const [assigneeId, setAssigneeId] = useState(task.assigneeId ?? "");
+  const [assigning, setAssigning] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  async function handleAssignChange(nextAssigneeId: string) {
+    setAssigneeId(nextAssigneeId);
+    setAssigning(true);
+    setError("");
+    try {
+      const updated = await tasksApi.assignTask(
+        task.id,
+        nextAssigneeId || null,
+      );
+      onUpdated(updated);
+    } catch (err) {
+      setAssigneeId(task.assigneeId ?? "");
+      setError(err instanceof Error ? err.message : "Failed to update assignee");
+    } finally {
+      setAssigning(false);
+    }
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -64,11 +93,36 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                   Due {format(deadlineDate, "MMM d, yyyy")}
                 </span>
               )}
-              {task.assignee && (
-                <span className="text-xs text-muted">
-                  Assignee: {task.assignee.name}
+            </div>
+            <div className="mt-3">
+              <label className="block">
+                <span className="mb-1 block text-xs font-medium text-muted">
+                  Assignee
                 </span>
-              )}
+                <div className="flex gap-2">
+                  <select
+                    value={assigneeId}
+                    disabled={assigning}
+                    onChange={(e) => handleAssignChange(e.target.value)}
+                    className="min-w-0 flex-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-sm outline-none focus:border-brand-500 disabled:opacity-50"
+                  >
+                    <option value="">Unassigned</option>
+                    {assignableMembers.map((m) => (
+                      <option key={m.userId} value={m.userId}>
+                        {m.user.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    disabled={assigning}
+                    onClick={() => handleAssignChange(currentUserId)}
+                    className="shrink-0 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs text-muted transition hover:border-brand-500/40 hover:text-text disabled:opacity-50"
+                  >
+                    Assign to me
+                  </button>
+                </div>
+              </label>
             </div>
           </div>
           <button

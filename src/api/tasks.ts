@@ -54,6 +54,13 @@ export function moveTask(
   });
 }
 
+export function assignTask(taskId: string, assigneeId: string | null) {
+  return api<Task>(`/tasks/${taskId}/assign`, {
+    method: "PATCH",
+    body: JSON.stringify({ assigneeId }),
+  });
+}
+
 export function createComment(taskId: string, body: string) {
   return api<Comment>(`/tasks/${taskId}/comments`, {
     method: "POST",
