@@ -2,11 +2,31 @@ export type Priority = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 
 export type SortKey = "deadline" | "priority" | "created" | "assignee";
 
+export type GroupRole = "MANAGER" | "MEMBER";
+
 export interface User {
   id: string;
   name: string;
   email: string;
   createdAt?: string;
+}
+
+export interface Group {
+  id: string;
+  name: string;
+  joinCode: string;
+  createdAt?: string;
+}
+
+export interface GroupMembership {
+  group: Group;
+  role: GroupRole;
+}
+
+export interface GroupMember {
+  userId: string;
+  role: GroupRole;
+  user: User;
 }
 
 export interface Column {
@@ -16,12 +36,26 @@ export interface Column {
   boardId?: string;
 }
 
+export interface BoardSummary {
+  id: string;
+  title: string;
+  groupId: string;
+  createdAt?: string;
+  hasAccess: boolean;
+}
+
 export interface Board {
   id: string;
   title: string;
-  ownerId?: string;
+  groupId?: string;
   createdAt?: string;
   columns?: Column[];
+}
+
+export interface BoardMemberEntry {
+  boardId: string;
+  userId: string;
+  user: User;
 }
 
 export interface Task {

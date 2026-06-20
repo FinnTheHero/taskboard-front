@@ -1,11 +1,13 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { LayoutGrid, Plus } from "lucide-react";
+import { LayoutGrid, Lock, Plus, Settings } from "lucide-react";
 import * as boardsApi from "../api/boards";
-import type { Board } from "../types";
+import { useGroup } from "../context/GroupContext";
+import type { BoardSummary } from "../types";
 
 export function BoardsPage() {
-  const [boards, setBoards] = useState<Board[]>([]);
+  const { membership, isManager } = useGroup();
+  const [boards, setBoards] = useState<BoardSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState("");
   const [creating, setCreating] = useState(false);
@@ -28,7 +30,16 @@ export function BoardsPage() {
     setError("");
     try {
       const board = await boardsApi.createBoard(title.trim());
-      setBoards((prev) => [board, ...prev]);
+      setBoards((prev) => [
+        {
+          id: board.id,
+          title: board.title,
+          groupId: board.groupId ?? membership!.group.id,
+          createdAt: board.createdAt,
+          hasAccess: true,
+        },
+        ...prev,
+      ]);
       setTitle("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create board");
@@ -39,32 +50,47 @@ export function BoardsPage() {
 
   return (
     <div>
-      <header className="mb-8">
-        <h1 className="text-2xl font-bold tracking-tight">Your boards</h1>
-        <p className="mt-1 text-sm text-muted">
-          Kanban workspaces for tasks, deadlines, and priorities
-        </p>
+      <header className="mb-8 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {membership?.group.name ?? "Your boards"}
+          </h1>
+          <p className="mt-1 text-sm text-muted">
+            All boards in your group · open only those you have access to
+          </p>
+        </div>
+        {isManager && (
+          <Link
+            to="/group/manage"
+            className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm text-muted transition hover:border-brand-500/40 hover:text-text"
+          >
+            <Settings className="h-4 w-4" />
+            Manage group
+          </Link>
+        )}
       </header>
 
-      <form
-        onSubmit={handleCreate}
-        className="mb-8 flex flex-wrap gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-raised)] p-4"
-      >
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="New board title…"
-          className="min-w-[200px] flex-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm outline-none focus:border-brand-500"
-        />
-        <button
-          type="submit"
-          disabled={creating || !title.trim()}
-          className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-700 disabled:opacity-50"
+      {isManager && (
+        <form
+          onSubmit={handleCreate}
+          className="mb-8 flex flex-wrap gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-raised)] p-4"
         >
-          <Plus className="h-4 w-4" />
-          {creating ? "Creating…" : "Create board"}
-        </button>
-      </form>
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="New board title…"
+            className="min-w-[200px] flex-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm outline-none focus:border-brand-500"
+          />
+          <button
+            type="submit"
+            disabled={creating || !title.trim()}
+            className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-700 disabled:opacity-50"
+          >
+            <Plus className="h-4 w-4" />
+            {creating ? "Creating…" : "Create board"}
+          </button>
+        </form>
+      )}
 
       {error && (
         <p className="mb-4 text-sm text-rose-400" role="alert">
@@ -77,24 +103,39 @@ export function BoardsPage() {
       ) : boards.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-[var(--color-border)] py-16 text-center">
           <LayoutGrid className="mx-auto mb-3 h-10 w-10 text-muted" />
-          <p className="text-muted">No boards yet. Create your first one above.</p>
+          <p className="text-muted">
+            {isManager
+              ? "No boards yet. Create your first one above."
+              : "No boards in this group yet."}
+          </p>
         </div>
       ) : (
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {boards.map((board) => (
-            <li key={board.id}>
-              <Link
-                to={`/boards/${board.id}`}
-                state={{ board }}
-                className="block rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-raised)] p-5 transition hover:border-brand-500/50 hover:shadow-lg"
-              >
-                <h2 className="font-semibold">{board.title}</h2>
-                <p className="mt-1 text-xs text-muted">
-                  {(board.columns?.length ?? 3)} columns · Open board →
-                </p>
-              </Link>
-            </li>
-          ))}
+          {boards.map((board) =>
+            board.hasAccess ? (
+              <li key={board.id}>
+                <Link
+                  to={`/boards/${board.id}`}
+                  className="block rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-raised)] p-5 transition hover:border-brand-500/50 hover:shadow-lg"
+                >
+                  <h2 className="font-semibold">{board.title}</h2>
+                  <p className="mt-1 text-xs text-muted">Open board →</p>
+                </Link>
+              </li>
+            ) : (
+              <li key={board.id}>
+                <div className="block rounded-xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface)]/50 p-5 opacity-75">
+                  <div className="flex items-start justify-between gap-2">
+                    <h2 className="font-semibold text-muted">{board.title}</h2>
+                    <Lock className="h-4 w-4 shrink-0 text-muted" />
+                  </div>
+                  <p className="mt-1 text-xs text-muted">
+                    No access — ask a manager to grant permission
+                  </p>
+                </div>
+              </li>
+            ),
+          )}
         </ul>
       )}
     </div>

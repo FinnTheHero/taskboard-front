@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import * as boardsApi from "../api/boards";
 import { KanbanBoard } from "../components/KanbanBoard";
@@ -7,23 +7,24 @@ import type { Board } from "../types";
 
 export function BoardPage() {
   const { boardId } = useParams<{ boardId: string }>();
-  const location = useLocation();
-  const stateBoard = (location.state as { board?: Board } | null)?.board;
-  const [board, setBoard] = useState<Board | null>(
-    stateBoard?.id === boardId ? (stateBoard ?? null) : null,
-  );
-  const [loading, setLoading] = useState(!board);
+  const [board, setBoard] = useState<Board | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    if (board?.columns?.length) return;
+    if (!boardId) return;
 
     let cancelled = false;
     (async () => {
       setLoading(true);
+      setError("");
       try {
-        const boards = await boardsApi.listBoards();
-        const found = boards.find((b) => b.id === boardId);
-        if (!cancelled && found) setBoard(found);
+        const data = await boardsApi.getBoard(boardId);
+        if (!cancelled) setBoard(data);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load board");
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -32,19 +33,17 @@ export function BoardPage() {
     return () => {
       cancelled = true;
     };
-  }, [boardId, board?.columns?.length]);
+  }, [boardId]);
 
   if (loading) {
     return <p className="text-muted">Loading board…</p>;
   }
 
-  if (!board || !board.columns?.length) {
+  if (error || !board || !board.columns?.length) {
     return (
       <div className="rounded-xl border border-[var(--color-border)] p-8 text-center">
         <p className="text-muted">
-          Board columns not available. Open this board from the boards list after
-          creating it, or ensure the API returns columns on{" "}
-          <code className="text-brand-500">GET /boards</code>.
+          {error || "Board not available or you do not have access."}
         </p>
         <Link
           to="/boards"

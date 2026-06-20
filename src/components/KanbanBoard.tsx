@@ -17,6 +17,7 @@ import { KanbanColumn } from "./KanbanColumn";
 import { TaskCard } from "./TaskCard";
 import { TaskDetailModal } from "./TaskDetailModal";
 import { TaskModal } from "./TaskModal";
+import { useGroup } from "../context/GroupContext";
 import type { Board, Column, SortKey, Task } from "../types";
 
 interface KanbanBoardProps {
@@ -24,6 +25,7 @@ interface KanbanBoardProps {
 }
 
 export function KanbanBoard({ board }: KanbanBoardProps) {
+  const { isManager } = useGroup();
   const columns = useMemo(
     () => [...(board.columns ?? [])].sort((a, b) => a.position - b.position),
     [board.columns],
@@ -231,7 +233,7 @@ export function KanbanBoard({ board }: KanbanBoardProps) {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          {doneColumn && doneCount > 0 && (
+          {isManager && doneColumn && doneCount > 0 && (
             <button
               type="button"
               onClick={handleArchiveCompleted}

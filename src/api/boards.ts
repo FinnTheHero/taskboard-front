@@ -1,8 +1,17 @@
 import { api } from "./client";
-import type { ArchiveCompletedResult, Board } from "../types";
+import type {
+  ArchiveCompletedResult,
+  Board,
+  BoardMemberEntry,
+  BoardSummary,
+} from "../types";
 
 export function listBoards() {
-  return api<Board[]>("/boards");
+  return api<BoardSummary[]>("/boards");
+}
+
+export function getBoard(boardId: string) {
+  return api<Board>(`/boards/${boardId}`);
 }
 
 export function createBoard(title: string) {
@@ -18,9 +27,19 @@ export function archiveCompleted(boardId: string) {
   });
 }
 
-export function transferOwnership(boardId: string, newOwnerId: string) {
-  return api<Board>(`/boards/${boardId}/transfer-ownership`, {
+export function listBoardMembers(boardId: string) {
+  return api<BoardMemberEntry[]>(`/boards/${boardId}/members`);
+}
+
+export function grantBoardAccess(boardId: string, userId: string) {
+  return api<BoardMemberEntry>(`/boards/${boardId}/members`, {
     method: "POST",
-    body: JSON.stringify({ newOwnerId }),
+    body: JSON.stringify({ userId }),
+  });
+}
+
+export function revokeBoardAccess(boardId: string, userId: string) {
+  return api<void>(`/boards/${boardId}/members/${userId}`, {
+    method: "DELETE",
   });
 }
