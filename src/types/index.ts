@@ -6,6 +6,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  createdAt?: string;
 }
 
 export interface Column {
@@ -18,6 +19,7 @@ export interface Column {
 export interface Board {
   id: string;
   title: string;
+  ownerId?: string;
   createdAt?: string;
   columns?: Column[];
 }
@@ -28,13 +30,20 @@ export interface Task {
   title: string;
   description?: string | null;
   deadline?: string | null;
-  priority: Priority;
+  priority: Priority | null;
   position: number;
   assigneeId?: string | null;
   assignee?: User | null;
   archivedAt?: string | null;
+  columnEnteredAt?: string;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface PaginatedTasks {
+  data: Task[];
+  nextCursor: string | null;
+  hasMore: boolean;
 }
 
 export interface Comment {
@@ -48,7 +57,8 @@ export interface Comment {
 
 export interface AuthResponse {
   user: User;
-  token: string;
+  accessToken: string;
+  refreshToken: string;
 }
 
 export interface CreateTaskInput {

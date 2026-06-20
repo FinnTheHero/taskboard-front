@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import * as authApi from "../api/auth";
-import { setToken } from "../api/client";
+import { clearTokens, getRefreshToken, setTokens } from "../api/client";
 import type { User } from "../types";
 
 interface AuthContextValue {
@@ -16,7 +16,7 @@ interface AuthContextValue {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -34,31 +34,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     authApi
       .getMe()
       .then(setUser)
-      .catch(() => setToken(null))
+      .catch(() => clearTokens())
       .finally(() => setLoading(false));
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    const { user: u, token } = await authApi.login({ email, password });
-    setToken(token);
+    const { user: u, accessToken, refreshToken } = await authApi.login({
+      email,
+      password,
+    });
+    setTokens(accessToken, refreshToken);
     setUser(u);
   }, []);
 
   const register = useCallback(
     async (name: string, email: string, password: string) => {
-      const { user: u, token } = await authApi.register({
+      const { user: u, accessToken, refreshToken } = await authApi.register({
         name,
         email,
         password,
       });
-      setToken(token);
+      setTokens(accessToken, refreshToken);
       setUser(u);
     },
     [],
   );
 
-  const logout = useCallback(() => {
-    setToken(null);
+  const logout = useCallback(async () => {
+    const refreshToken = getRefreshToken();
+    if (refreshToken) {
+      try {
+        await authApi.logout(refreshToken);
+      } catch {
+        // Clear local session even if server revoke fails
+      }
+    }
+    clearTokens();
     setUser(null);
   }, []);
 

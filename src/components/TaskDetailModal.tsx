@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { MessageSquare, X } from "lucide-react";
 import * as tasksApi from "../api/tasks";
 import { PriorityBadge } from "./PriorityBadge";
@@ -13,27 +13,8 @@ interface TaskDetailModalProps {
 export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [body, setBody] = useState("");
-  const [loadingComments, setLoadingComments] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoadingComments(true);
-      try {
-        const list = await tasksApi.listComments(task.id);
-        if (!cancelled) setComments(list);
-      } catch {
-        if (!cancelled) setComments([]);
-      } finally {
-        if (!cancelled) setLoadingComments(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [task.id]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -100,15 +81,16 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 pt-4">
-          <div className="mb-3 flex items-center gap-2 text-sm font-medium">
+          <div className="mb-1 flex items-center gap-2 text-sm font-medium">
             <MessageSquare className="h-4 w-4 text-brand-500" />
             Comments
           </div>
+          <p className="mb-3 text-xs text-muted">
+            Comments posted in this session appear below.
+          </p>
 
-          {loadingComments ? (
-            <p className="text-sm text-muted">Loading comments…</p>
-          ) : comments.length === 0 ? (
-            <p className="text-sm text-muted">No comments yet.</p>
+          {comments.length === 0 ? (
+            <p className="mb-4 text-sm text-muted">No comments yet.</p>
           ) : (
             <ul className="mb-4 space-y-3">
               {comments.map((comment) => (

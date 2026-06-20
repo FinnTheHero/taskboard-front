@@ -7,8 +7,7 @@ export function Layout() {
   const navigate = useNavigate();
 
   function handleLogout() {
-    logout();
-    navigate("/login");
+    void logout().then(() => navigate("/login"));
   }
 
   return (
